@@ -1,0 +1,1 @@
+# Funções simples: leitura de arquivo local, checksum

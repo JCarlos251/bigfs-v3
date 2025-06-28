@@ -1,0 +1,1 @@
+# Verifica DataNodes ativos (heartbeat + timeout)

@@ -1,0 +1,1 @@
+# Serviço que mantém fator de replicação fixo (3)

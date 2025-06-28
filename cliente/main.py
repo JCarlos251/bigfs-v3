@@ -1,3 +1,4 @@
+ # CLI simples: upload/download/list/delete
 import os
 from Pyro5.api import locate_ns, Proxy, config
 
