@@ -1,7 +1,7 @@
 import os
 from Pyro5.api import locate_ns, Proxy, config
 
-#mudança branch develop
+#tt new-release
 
 config.SERIALIZER = "msgpack"
 
