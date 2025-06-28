@@ -1,9 +1,9 @@
-bigfs-v3/
+bigfs-v3/ -- *** REALIZAÇÃO DE TESTES E CORREÇÕES ***
 │
 ├── cliente/
 │   ├── __init__.py
-│   ├── main.py                 # CLI simples: upload/download/list/delete
-│   └── utils.py                # Funções simples: leitura de arquivo local, checksum
+│   ├── main.py                 # CLI simples: upload/download/list/delete -- *** IMPLEMENTADO ***
+│   └── utils.py                # Funções simples: leitura de arquivo local, checksum -- *** IMPLEMENTADO ***
 │
 ├── namenode/
 │   ├── __init__.py
@@ -11,14 +11,14 @@ bigfs-v3/
 │   ├── namenode.py             # Coordena todas as operações: escrita, leitura, deleção -- *** IMPLEMENTADO ***
 │   ├── chunk_manager.py        # Divide e reconstrói arquivos (10MB), controla replicação -- *** IMPLEMENTADO ***
 │   ├── metadados.py            # Gerencia estrutura de metadados (dict em memória e persistência) -- *** IMPLEMENTADO ***
-│   ├── heartbeat_monitor.py    # Verifica DataNodes ativos (heartbeat)
-│   └── replicador.py           # Serviço que mantém fator de replicação fixo (3)
+│   ├── heartbeat_monitor.py    # Verifica DataNodes ativos (heartbeat) -- *** IMPLEMENTADO ***
+│   └── replicador.py           # Serviço que mantém fator de replicação fixo (3) -- *** IMPLEMENTADO ***
 │
 ├── datanode/
 │   ├── __init__.py
 │   ├── datanode.py             # Classe com salvar/deletar chunk, validar checksum -- *** IMPLEMENTADO ***
-│   ├── main1.py                # Inicializa DataNode 1
-│   ├── main2.py                # Inicializa DataNode 2
+│   ├── main1.py                # Inicializa DataNode 1 -- *** IMPLEMENTADO ***
+│   ├── main2.py                # Inicializa DataNode 2 -- *** IMPLEMENTADO ***
 │   └── storage_utils.py        # Leitura/escrita segura em disco -- *** IMPLEMENTADO ***
 │
 ├── servidor/

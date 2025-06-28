@@ -3,6 +3,11 @@
 import os
 from Pyro5.api import expose
 from datanode.storage_utils import salvar_chunk, deletar_chunk, carregar_chunk, calcular_checksum
+import threading
+import time
+from core.constants import NAMENODE_SERVICE_NAME
+from core.network import get_nameserver
+from Pyro5.api import Proxy
 
 @expose
 class DataNode:
@@ -38,3 +43,22 @@ class DataNode:
         dados = carregar_chunk(self.storage_dir, nome_chunk)
         checksum = calcular_checksum(dados)
         return dados, checksum
+
+class HeartbeatSender(threading.Thread):
+    def __init__(self, datanode_uri):
+        super().__init__(daemon=True)
+        self.datanode_uri = datanode_uri
+
+    def run(self):
+        try:
+            ns = get_nameserver()
+            namenode_uri = ns.lookup(NAMENODE_SERVICE_NAME)
+            with Proxy(namenode_uri) as namenode:
+                while True:
+                    time.sleep(3)
+                    try:
+                        namenode.heartbeat(self.datanode_uri)
+                    except Exception as e:
+                        print(f"[HeartbeatSender] Falha ao enviar heartbeat: {e}")
+        except Exception as e:
+            print(f"[HeartbeatSender] Erro ao iniciar envio de heartbeat: {e}")

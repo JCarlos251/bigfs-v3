@@ -1,4 +1,4 @@
-# Inicializa DataNode 2
+# Inicializa DataNode 3
 
 from datanode.datanode import DataNode
 from core.constants import DATANODE_SERVICE_PREFIX, NAMENODE_SERVICE_NAME
@@ -6,12 +6,12 @@ from core.network import start_daemon, register_service, get_nameserver
 from Pyro5.api import Proxy
 
 def main():
-    print("[DataNode2] Iniciando...")
+    print("[DataNode3] Iniciando...")
 
     # Definições
-    datanode_id = "2"
+    datanode_id = "3"
     service_name = f"{DATANODE_SERVICE_PREFIX}{datanode_id}"
-    storage_dir = "servidor/datanode2"
+    storage_dir = "servidor/datanode3"
 
     # Criação do daemon Pyro5
     daemon = start_daemon()
@@ -19,8 +19,8 @@ def main():
 
     # Registro no NameServer
     uri = register_service(service_name, datanode, daemon)
-    print(f"[DataNode2] Registrado como {service_name}")
-    print(f"[DataNode2] URI: {uri}")
+    print(f"[DataNode3] Registrado como {service_name}")
+    print(f"[DataNode3] URI: {uri}")
 
     # Registro no NameNode
     try:
@@ -28,12 +28,12 @@ def main():
         namenode_uri = ns.lookup(NAMENODE_SERVICE_NAME)
         with Proxy(namenode_uri) as namenode:
             namenode.registrar_datanode(uri)
-        print("[DataNode2] Registrado com sucesso no NameNode.")
+        print("[DataNode3] Registrado com sucesso no NameNode.")
     except Exception as e:
-        print(f"[DataNode2] Erro ao registrar no NameNode: {e}")
+        print(f"[DataNode3] Erro ao registrar no NameNode: {e}")
 
     # Loop do servidor
-    print("[DataNode2] Aguardando requisições...")
+    print("[DataNode3] Aguardando requisições...")
     daemon.requestLoop()
 
 if __name__ == "__main__":
