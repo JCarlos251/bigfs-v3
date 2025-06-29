@@ -5,11 +5,13 @@ import time
 import os
 from Pyro5.api import expose
 from core.config import REPLICATION_FACTOR, HEARTBEAT_TIMEOUT
-from core.constants import DATANODE_SERVICE_PREFIX
+#from core.constants import DATANODE_SERVICE_PREFIX
 from namenode.metadados import Metadados
 from namenode.chunk_manager import ChunkManager
 from namenode.heartbeat_monitor import HeartbeatMonitor
 from namenode.replicador import Replicador
+from datanode.storage_utils import calcular_checksum
+from Pyro5.api import Proxy
 
 @expose
 class NameNode:
@@ -109,8 +111,6 @@ class NameNode:
         Após receber todos os blocos, divide o arquivo em chunks, envia aos datanodes
         e atualiza os metadados.
         """
-        from datanode.storage_utils import calcular_checksum
-        from Pyro5.api import Proxy
 
         caminho_temp = os.path.join("tmp_uploads", nome_arquivo)
 
@@ -140,7 +140,9 @@ class NameNode:
                     except Exception as e:
                         print(f"[NameNode] Falha ao enviar {chunk_name} para {uri}: {e}")
 
-                chunks_datanodes[chunk_name] = uris_escolhidas
+                #chunks_datanodes[chunk_name] = uris_escolhidas
+                chunks_datanodes[chunk_name] = [str(uri) for uri in uris_escolhidas]
+
 
             self.metadados.salvar_metadado(nome_arquivo, chunks_datanodes)
 
@@ -158,9 +160,6 @@ class NameNode:
         Reagrupa os chunks de um arquivo a partir dos DataNodes,
         salva o arquivo completo em tmp_downloads/ e retorna True/False.
         """
-        from datanode.storage_utils import calcular_checksum
-        from Pyro5.api import Proxy
-
         chunks_info = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
         if not chunks_info:
             raise Exception("Arquivo não encontrado.")
