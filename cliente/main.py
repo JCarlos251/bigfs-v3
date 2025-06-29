@@ -79,7 +79,13 @@ def main():
                 continue
 
             nome_remoto = partes[1]
-            destino_local = partes[2] if len(partes) > 2 else nome_remoto
+            # destino_local = partes[2] if len(partes) > 2 else nome_remoto
+
+            pasta_destino = os.path.join("cliente/arquivos_download_cliente")
+            os.makedirs(pasta_destino, exist_ok=True)
+
+            destino_local = os.path.join(pasta_destino, os.path.basename(partes[2]) if len(partes) > 2 else nome_remoto)
+
 
             try:
                 print(f"[Cliente] Solicitando reconstrução do arquivo '{nome_remoto}' ao NameNode...")
@@ -87,7 +93,8 @@ def main():
                 if not sucesso:
                     print("[Cliente] Falha na reconstrução do arquivo.")
                     continue
-
+                
+                
                 print("[Cliente] Recebendo arquivo em blocos de 64KB...")
                 with open(destino_local, "wb") as f_out:
                     for bloco, checksum in namenode.enviar_arquivo_em_blocos(nome_remoto):

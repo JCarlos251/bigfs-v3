@@ -7,7 +7,9 @@ import threading
 import time
 from core.constants import NAMENODE_SERVICE_NAME
 from core.network import get_nameserver
-from Pyro5.api import Proxy
+from Pyro5.api import Proxy, config
+
+config.SERIALIZER = "msgpack"
 
 @expose
 class DataNode:

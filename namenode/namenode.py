@@ -3,7 +3,7 @@
 import threading
 import time
 import os
-from Pyro5.api import expose
+from Pyro5.api import expose, config
 from core.config import REPLICATION_FACTOR, HEARTBEAT_TIMEOUT
 #from core.constants import DATANODE_SERVICE_PREFIX
 from namenode.metadados import Metadados
@@ -12,6 +12,9 @@ from namenode.heartbeat_monitor import HeartbeatMonitor
 from namenode.replicador import Replicador
 from datanode.storage_utils import calcular_checksum
 from Pyro5.api import Proxy
+import random
+
+config.SERIALIZER = "msgpack"
 
 @expose
 class NameNode:
@@ -22,8 +25,8 @@ class NameNode:
         self.chunk_manager = ChunkManager()
         self.heartbeat_monitor = HeartbeatMonitor(self)
         self.heartbeat_monitor.start()
-        self.replicador = Replicador(self)
-        self.replicador.start()
+        # self.replicador = Replicador(self)
+        # self.replicador.start()
 
     # ---------------------------
     # Registro e Heartbeat
@@ -50,6 +53,7 @@ class NameNode:
     # ---------------------------
 
     def listar_arquivos(self):
+        print(self.datanodes_ativos)
         return self.metadados.listar_arquivos()
 
     def solicitar_datanodes_para_escrita(self, num_chunks):
@@ -106,6 +110,7 @@ class NameNode:
         with open(caminho, "ab") as f:
             f.write(bloco_bytes)
 
+    
     def processar_arquivo_upload(self, nome_arquivo):
         """
         Após receber todos os blocos, divide o arquivo em chunks, envia aos datanodes
@@ -122,30 +127,38 @@ class NameNode:
             with open(caminho_temp, "rb") as f:
                 dados = f.read()
 
+            # checksum = calcular_checksum(dados)
+
             chunks_bytes = self.chunk_manager.dividir_em_chunks(dados)
-            nomes_chunks = self.chunk_manager.gerar_nomes_chunks(nome_arquivo, len(chunks_bytes))
+            nomes_chunks = self.chunk_manager.gerar_nomes_chunks(nome_arquivo, len(chunks_bytes))   
+
             datanodes_vivos = self.obter_datanodes_vivos()
+
+            if not datanodes_vivos:
+                print("[NameNode] Nenhum DataNode disponível.")
+                return False
+            
             chunks_datanodes = {}
 
+             # Envia cada chunk para um datanode diferente (ou em round-robin)
             for i, chunk_data in enumerate(chunks_bytes):
                 chunk_name = nomes_chunks[i]
                 checksum = calcular_checksum(chunk_data)
-                uris_escolhidas = self.chunk_manager.sortear_datanodes_para_chunk(
-                    datanodes_vivos, REPLICATION_FACTOR)
 
-                for uri in uris_escolhidas:
-                    try:
-                        with Proxy(uri) as datanode:
-                            datanode.salvar_arquivo(chunk_name, chunk_data, checksum)
-                    except Exception as e:
-                        print(f"[NameNode] Falha ao enviar {chunk_name} para {uri}: {e}")
+                # Escolhe um datanode round-robin 
+                uri_datanode = datanodes_vivos[i % len(datanodes_vivos)]
 
-                #chunks_datanodes[chunk_name] = uris_escolhidas
-                chunks_datanodes[chunk_name] = [str(uri) for uri in uris_escolhidas]
-
-
+                try:
+                    with Proxy(uri_datanode) as datanode:
+                        datanode.salvar_arquivo(chunk_name, chunk_data, checksum)
+                    chunks_datanodes[chunk_name] = [str(uri_datanode)]
+                except Exception as e:
+                    print(f"[NameNode] Falha ao enviar {chunk_name} para {uri_datanode}: {e}")
+            
+            # Salva os metadados do arquivo (nome do arquivo original → mapeamento de chunks)
             self.metadados.salvar_metadado(nome_arquivo, chunks_datanodes)
 
+            # Remove o arquivo temporário
             os.remove(caminho_temp)
             print(f"[NameNode] Upload finalizado e metadados atualizados para '{nome_arquivo}'.")
 
