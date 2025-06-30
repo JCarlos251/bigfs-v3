@@ -26,3 +26,15 @@ def calcular_checksum(dados):
     sha = hashlib.sha256()
     sha.update(dados)
     return sha.hexdigest()
+
+def ajuda():
+    print("Comandos disponíveis:")
+    print("  ls                                    Lista os arquivos no sistema")
+    print("  upload <arquivo_local> [nome_remoto]  Envia arquivo ao sistema")
+    print("  download <arquivo_remoto> [destino]   Baixa arquivo do sistema")
+    print("  delete <arquivo_remoto>               Remove arquivo do sistema")
+    print("  clear                                 Limpar terminal")
+    print("  exit                                  Encerra o cliente")
+
+def limpar_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')

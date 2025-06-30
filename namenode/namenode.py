@@ -5,14 +5,12 @@ import time
 import os
 from Pyro5.api import expose, config
 from core.config import REPLICATION_FACTOR, HEARTBEAT_TIMEOUT
-#from core.constants import DATANODE_SERVICE_PREFIX
 from namenode.metadados import Metadados
 from namenode.chunk_manager import ChunkManager
 from namenode.heartbeat_monitor import HeartbeatMonitor
 from namenode.replicador import Replicador
 from datanode.storage_utils import calcular_checksum
 from Pyro5.api import Proxy
-import random
 
 from namenode.replicador2 import Replicador2
 
@@ -58,7 +56,7 @@ class NameNode:
     # ---------------------------
 
     def listar_arquivos(self):
-        print(self.datanodes_ativos)
+        #print(self.datanodes_ativos)
         return self.metadados.listar_arquivos()
 
     def solicitar_datanodes_para_escrita(self, num_chunks):

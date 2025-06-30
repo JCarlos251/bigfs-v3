@@ -4,7 +4,7 @@
 import os
 from Pyro5.api import locate_ns, Proxy, config
 from core.constants import NAMENODE_SERVICE_NAME
-from cliente.utils import ler_arquivo_local, calcular_checksum
+from cliente.utils import calcular_checksum, ajuda, limpar_terminal
 
 config.SERIALIZER = "msgpack"
 
@@ -27,12 +27,10 @@ def main():
             break
 
         elif comando == "help":
-            print("Comandos disponíveis:")
-            print("  ls                                     Lista os arquivos no sistema")
-            print("  upload <arquivo_local> [nome_remoto]  Envia arquivo ao sistema")
-            print("  download <arquivo_remoto> [destino]   Baixa arquivo do sistema")
-            print("  delete <arquivo_remoto>               Remove arquivo do sistema")
-            print("  exit                                   Encerra o cliente")
+            ajuda()
+
+        elif comando == "clear":
+            limpar_terminal()
 
         elif comando == "ls":
             arquivos = namenode.listar_arquivos()
