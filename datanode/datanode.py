@@ -6,6 +6,7 @@ from datanode.storage_utils import salvar_chunk, deletar_chunk, carregar_chunk, 
 import threading
 import time
 from core.constants import NAMENODE_SERVICE_NAME
+from core.config import HEARTBEAT_INTERVAL
 from core.network import get_nameserver
 from Pyro5.api import Proxy, config
 
@@ -55,12 +56,15 @@ class HeartbeatSender(threading.Thread):
         try:
             ns = get_nameserver()
             namenode_uri = ns.lookup(NAMENODE_SERVICE_NAME)
-            with Proxy(namenode_uri) as namenode:
-                while True:
-                    time.sleep(3)
-                    try:
-                        namenode.heartbeat(self.datanode_uri)
-                    except Exception as e:
-                        print(f"[HeartbeatSender] Falha ao enviar heartbeat: {e}")
+
+            while True:
+                time.sleep(HEARTBEAT_INTERVAL)
+                try:
+                    with Proxy(namenode_uri) as namenode:
+                        namenode.heartbeat(str(self.datanode_uri))
+                        print(f"[HeartbeatSender] Heartbeat enviado para {namenode_uri}")
+                except Exception as e:
+                    print(f"[HeartbeatSender] Falha ao enviar heartbeat: {e}")
+
         except Exception as e:
             print(f"[HeartbeatSender] Erro ao iniciar envio de heartbeat: {e}")

@@ -16,6 +16,11 @@ from namenode.replicador2 import Replicador2
 
 config.SERIALIZER = "msgpack"
 
+
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from Pyro5.api import Proxy
+
 @expose
 class NameNode:
     def __init__(self):
@@ -56,7 +61,7 @@ class NameNode:
     # ---------------------------
 
     def listar_arquivos(self):
-        #print(self.datanodes_ativos)
+        print(self.datanodes_ativos)
         return self.metadados.listar_arquivos()
 
     def solicitar_datanodes_para_escrita(self, num_chunks):
@@ -167,6 +172,50 @@ class NameNode:
             print(f"[NameNode] Erro ao processar upload: {e}")
             return False
 
+
+    
+
+    def reconstruir_arquivo_para_download(self, nome_arquivo):
+        chunks_info = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
+        if not chunks_info:
+            raise Exception("Arquivo não encontrado.")
+
+        os.makedirs("tmp_downloads", exist_ok=True)
+        caminho_saida = os.path.join("tmp_downloads", nome_arquivo)
+
+        def baixar_chunk(chunk_name, datanodes):
+            for dn_uri in datanodes:
+                try:
+                    with Proxy(dn_uri) as datanode:
+                        dados, checksum = datanode.ler_arquivo(chunk_name)
+                        if calcular_checksum(dados) != checksum:
+                            print(f"[NameNode] Checksum inválido do chunk {chunk_name} de {dn_uri}")
+                            continue
+                        print(f"[NameNode] Chunk {chunk_name} baixado de {dn_uri}")
+                        return chunk_name, dados
+                except Exception as e:
+                    print(f"[NameNode] Falha ao baixar chunk {chunk_name} de {dn_uri}: {e}")
+            raise Exception(f"Falha em todos os DataNodes para o chunk {chunk_name}")
+
+        resultados = {}
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futuros = [executor.submit(baixar_chunk, chunk_name, datanodes)
+                    for chunk_name, datanodes in chunks_info.items()]
+
+            for futuro in as_completed(futuros):
+                chunk_name, dados = futuro.result()
+                resultados[chunk_name] = dados
+
+        # Ordena os chunks pelo nome para escrever em sequência
+        with open(caminho_saida, "wb") as f_saida:
+            for chunk_name in sorted(resultados.keys()):
+                f_saida.write(resultados[chunk_name])
+
+        print(f"[NameNode] Arquivo {nome_arquivo} reconstruído com sucesso em {caminho_saida}")
+        return True
+
+    '''
     def reconstruir_arquivo_para_download(self, nome_arquivo):
         """
         Reagrupa os chunks de um arquivo a partir dos DataNodes,
@@ -183,6 +232,8 @@ class NameNode:
             for chunk_name in sorted(chunks_info.keys()):
                 datanodes = chunks_info[chunk_name]
                 sucesso = False
+
+                # tenta no primeiro datanode da lista, se não for possível, tentará o próximo
                 for dn_uri in datanodes:
                     try:
                         with Proxy(dn_uri) as datanode:
@@ -199,6 +250,7 @@ class NameNode:
                     raise Exception(f"Falha em todos os DataNodes para o chunk {chunk_name}")
 
         return True
+        '''
 
     def enviar_arquivo_em_blocos(self, nome_arquivo):
         """

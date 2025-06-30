@@ -4,6 +4,7 @@ from datanode.datanode import DataNode
 from core.constants import DATANODE_SERVICE_PREFIX, NAMENODE_SERVICE_NAME
 from core.network import start_daemon, register_service, get_nameserver
 from Pyro5.api import Proxy
+from datanode.datanode import HeartbeatSender
 
 def main():
     print("[DataNode2] Iniciando...")
@@ -31,6 +32,8 @@ def main():
         print("[DataNode2] Registrado com sucesso no NameNode.")
     except Exception as e:
         print(f"[DataNode2] Erro ao registrar no NameNode: {e}")
+
+    HeartbeatSender(uri).start()
 
     # Loop do servidor
     print("[DataNode2] Aguardando requisições...")
