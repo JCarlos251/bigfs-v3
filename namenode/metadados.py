@@ -30,7 +30,7 @@ class Metadados:
 
     def salvar_metadado(self, nome_arquivo, chunks_datanodes):
         """
-        chunks_datanodes = {
+        relatorio.pdf = {
             "relatorio_chunk1": ["dn1", "dn2", "dn3"],
             "relatorio_chunk2": ["dn2", "dn3", "dn4"],
         }

@@ -14,6 +14,8 @@ from datanode.storage_utils import calcular_checksum
 from Pyro5.api import Proxy
 import random
 
+from namenode.replicador2 import Replicador2
+
 config.SERIALIZER = "msgpack"
 
 @expose
@@ -27,6 +29,9 @@ class NameNode:
         self.heartbeat_monitor.start()
         # self.replicador = Replicador(self)
         # self.replicador.start()
+
+        self.replicador = Replicador2(self)
+        self.replicador.start()
 
     # ---------------------------
     # Registro e Heartbeat
@@ -67,10 +72,6 @@ class NameNode:
             escolhidos = self.chunk_manager.sortear_datanodes_para_chunk(vivos, REPLICATION_FACTOR)
             chunks_datanodes.append(escolhidos)
         return chunks_datanodes
-
-    def registrar_chunks_arquivo(self, nome_arquivo, chunks_mapeados):
-        # Exemplo: chunks_mapeados = {chunk1: [dn1, dn2, dn3], chunk2: [...]}
-        self.metadados.salvar_metadado(nome_arquivo, chunks_mapeados)
 
     def localizar_datanodes_do_arquivo(self, nome_arquivo):
         return self.metadados.obter_chunks_do_arquivo(nome_arquivo)

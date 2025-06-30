@@ -7,10 +7,10 @@ from datanode.storage_utils import calcular_checksum
 from Pyro5.api import Proxy
 
 class Replicador(threading.Thread):
-    def __init__(self, namenode, intervalo=15):
+    def __init__(self, namenode, intervalo=5):
         super().__init__(daemon=True)
         self.namenode = namenode
-        self.intervalo = intervalo  # segundos
+        self.intervalo = intervalo  #  5 segundos
 
     def run(self):
         while True:
