@@ -1,0 +1,5 @@
+File Size,Operation,Time (s),Throughput (MB/s),Status,SHA256 Check,Bytes Transferidos,Observa��es
+1MB,Upload,1.03,0.97,Success,-,1048576,
+1MB,Download,0.97,1.03,Success,OK,1048576,
+10MB,Upload,1.1,9.09,Success,-,10485760,
+10MB,Download,1.03,9.75,Success,FAIL,10485760,
