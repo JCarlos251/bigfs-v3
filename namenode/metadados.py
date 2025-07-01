@@ -31,8 +31,8 @@ class Metadados:
     def salvar_metadado(self, nome_arquivo, chunks_datanodes):
         """
         relatorio.pdf = {
-            "relatorio_chunk1": ["dn1", "dn2", "dn3"],
-            "relatorio_chunk2": ["dn2", "dn3", "dn4"],
+            "relatorio_chunk1": ["datanode1", "datanode2", "datanode3"],
+            "relatorio_chunk2": ["datanode2", "datanode3", "datanode4"],
         }
         """
         with self.lock:

@@ -64,21 +64,6 @@ class NameNode:
         print(self.datanodes_ativos)
         return self.metadados.listar_arquivos()
 
-    def solicitar_datanodes_para_escrita(self, num_chunks):
-        vivos = self.obter_datanodes_vivos()
-        if len(vivos) < REPLICATION_FACTOR:
-            raise Exception("Não há datanodes suficientes vivos")
-
-        # Define quais datanodes serão usados para cada chunk
-        chunks_datanodes = []
-        for _ in range(num_chunks):
-            escolhidos = self.chunk_manager.sortear_datanodes_para_chunk(vivos, REPLICATION_FACTOR)
-            chunks_datanodes.append(escolhidos)
-        return chunks_datanodes
-
-    def localizar_datanodes_do_arquivo(self, nome_arquivo):
-        return self.metadados.obter_chunks_do_arquivo(nome_arquivo)
-
     def delete_arquivo(self, nome_arquivo):
         chunks = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
         if not chunks:
@@ -150,7 +135,9 @@ class NameNode:
                 checksum = calcular_checksum(chunk_data)
 
                 # Escolhe um datanode round-robin 
-                uri_datanode = datanodes_vivos[i % len(datanodes_vivos)]
+                #uri_datanode = datanodes_vivos[i % len(datanodes_vivos)]
+
+                uri_datanode = self.escolher_datanode_com_menos_chunks(datanodes_vivos)
 
                 try:
                     with Proxy(uri_datanode) as datanode:
@@ -171,6 +158,23 @@ class NameNode:
         except Exception as e:
             print(f"[NameNode] Erro ao processar upload: {e}")
             return False
+
+
+    def escolher_datanode_com_menos_chunks(self, datanodes_vivos):
+        contador = {dn_uri: 0 for dn_uri in datanodes_vivos}
+
+        with self.metadados.lock:
+            for chunks_datanodes in self.metadados.metadados.values():
+                for datanodes_lista in chunks_datanodes.values():  # para cada chunk
+                    for dn_uri in datanodes_lista:  # para cada datanode onde está esse chunk
+                        if dn_uri in contador:
+                            contador[dn_uri] += 1
+
+        min_chunks = min(contador.values())
+        candidatos = [dn for dn, count in contador.items() if count == min_chunks]
+
+        return candidatos[0] if candidatos else None
+
 
 
     

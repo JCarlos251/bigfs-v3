@@ -1,1 +1,38 @@
-{}
+{
+    "arquivoteste.pdf": {
+        "arquivoteste.pdf_chunk1": [
+            "PYRO:obj_88ff9003e01b43ad8077e0226af38322@localhost:50977",
+            "PYRO:obj_4865dd0a31e447dfaf91a35971db5a3a@localhost:50987"
+        ],
+        "arquivoteste.pdf_chunk2": [
+            "PYRO:obj_88ff9003e01b43ad8077e0226af38322@localhost:50977",
+            "PYRO:obj_e6451d6ea84d445d87eceb4f7875dddc@localhost:50982"
+        ],
+        "arquivoteste.pdf_chunk3": [
+            "PYRO:obj_88ff9003e01b43ad8077e0226af38322@localhost:50977",
+            "PYRO:obj_e6451d6ea84d445d87eceb4f7875dddc@localhost:50982"
+        ],
+        "arquivoteste.pdf_chunk4": [
+            "PYRO:obj_88ff9003e01b43ad8077e0226af38322@localhost:50977",
+            "PYRO:obj_4865dd0a31e447dfaf91a35971db5a3a@localhost:50987"
+        ],
+        "arquivoteste.pdf_chunk5": [
+            "PYRO:obj_88ff9003e01b43ad8077e0226af38322@localhost:50977",
+            "PYRO:obj_e6451d6ea84d445d87eceb4f7875dddc@localhost:50982"
+        ],
+        "arquivoteste.pdf_chunk6": [
+            "PYRO:obj_88ff9003e01b43ad8077e0226af38322@localhost:50977",
+            "PYRO:obj_e6451d6ea84d445d87eceb4f7875dddc@localhost:50982"
+        ],
+        "arquivoteste.pdf_chunk7": [
+            "PYRO:obj_88ff9003e01b43ad8077e0226af38322@localhost:50977",
+            "PYRO:obj_e6451d6ea84d445d87eceb4f7875dddc@localhost:50982"
+        ]
+    },
+    "arquivocliente.txt": {
+        "arquivocliente.txt_chunk1": [
+            "PYRO:obj_7137615985e543dcbb40cf024f4d4a41@localhost:50992",
+            "PYRO:obj_e6451d6ea84d445d87eceb4f7875dddc@localhost:50982"
+        ]
+    }
+}

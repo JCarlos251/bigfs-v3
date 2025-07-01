@@ -28,54 +28,63 @@ class Replicador2(threading.Thread):
             atualizado = False
 
             for chunk_name, uris_existentes in chunks.items():
-                # Converte para strings para comparação segura
                 uris_existentes = [str(u) for u in uris_existentes]
+                uris_existentes = [u for u in uris_existentes if u in datanodes_vivos]
 
-                if len(uris_existentes) >= REPLICATION_FACTOR:
-                    continue
-
-                # Remove os datanodes que já têm o chunk
-                candidatos = list(set(datanodes_vivos) - set(uris_existentes))
-                faltam = REPLICATION_FACTOR - len(uris_existentes)
-
-                # Sem origem ativa? Pula o chunk
-                origens_possiveis = [u for u in uris_existentes if u in datanodes_vivos]
-                if not origens_possiveis:
-                    print(f"[Replicador2] Nenhuma origem ativa para {chunk_name}")
-                    continue
-
-                origem_uri = origens_possiveis[0]
-                random.shuffle(candidatos)  # Balanceamento
-
-                # Debug temporário
-                print(f"[Replicador2] Chunk: {chunk_name} | Origem: {origem_uri} | Candidatos: {candidatos}")
-
-                novos_uris = []
-
-                try:
-                    with Proxy(origem_uri) as origem:
-                        dados, checksum = origem.ler_arquivo(chunk_name)
-
-                    for uri_destino in candidatos[:faltam]:
+                # === [1] Corrige excesso de réplicas ===
+                if len(uris_existentes) > REPLICATION_FACTOR:
+                    excedentes = uris_existentes[REPLICATION_FACTOR:]
+                    for uri in excedentes:
                         try:
-                            with Proxy(uri_destino) as destino:
-                                destino.salvar_arquivo(chunk_name, dados, checksum)
-                            novos_uris.append(str(uri_destino))
-                            print(f"[Replicador2] Replicado {chunk_name} de {origem_uri} para {uri_destino}")
+                            with Proxy(uri) as datanode:
+                                datanode.delete_arquivo(chunk_name)
+                            print(f"[Replicador2] Réplica excedente {chunk_name} removida de {uri}")
                         except Exception as e:
-                            print(f"[Replicador2] Falha ao replicar {chunk_name} para {uri_destino}: {e}")
-                except Exception as e:
-                    print(f"[Replicador2] Falha ao ler chunk {chunk_name} de {origem_uri}: {e}")
-                    continue
-
-                if novos_uris:
-                    chunks[chunk_name] = list(set(uris_existentes + novos_uris))
+                            print(f"[Replicador2] Falha ao remover réplica excedente de {uri}: {e}")
+                    uris_existentes = uris_existentes[:REPLICATION_FACTOR]
+                    chunks[chunk_name] = uris_existentes
                     atualizado = True
 
+                # === [2] Corrige falta de réplicas ===
+                elif len(uris_existentes) < REPLICATION_FACTOR:
+                    faltam = REPLICATION_FACTOR - len(uris_existentes)
+                    candidatos = list(set(datanodes_vivos) - set(uris_existentes))
+                    origens_possiveis = [u for u in uris_existentes if u in datanodes_vivos]
+
+                    if not origens_possiveis:
+                        print(f"[Replicador2] Nenhuma origem ativa para {chunk_name}")
+                        continue
+
+                    origem_uri = origens_possiveis[0]
+                    random.shuffle(candidatos)
+
+                    try:
+                        with Proxy(origem_uri) as origem:
+                            dados, checksum = origem.ler_arquivo(chunk_name)
+
+                        novos_uris = []
+                        for uri_destino in candidatos[:faltam]:
+                            try:
+                                with Proxy(uri_destino) as destino:
+                                    destino.salvar_arquivo(chunk_name, dados, checksum)
+                                novos_uris.append(str(uri_destino))
+                                print(f"[Replicador2] Replicado {chunk_name} de {origem_uri} para {uri_destino}")
+                            except Exception as e:
+                                print(f"[Replicador2] Falha ao replicar {chunk_name} para {uri_destino}: {e}")
+
+                        if novos_uris:
+                            uris_existentes += novos_uris
+                            chunks[chunk_name] = uris_existentes
+                            atualizado = True
+
+                    except Exception as e:
+                        print(f"[Replicador2] Falha ao ler chunk {chunk_name} de {origem_uri}: {e}")
+                        continue
+
             if atualizado:
-                # Garante que tudo seja serializável
                 chunks_serializaveis = {
                     chunk: [str(uri) for uri in uris]
                     for chunk, uris in chunks.items()
                 }
                 self.namenode.metadados.salvar_metadado(arquivo, chunks_serializaveis)
+

@@ -50,6 +50,11 @@ def main():
             caminho_local = partes[1]
             nome_remoto = partes[2] if len(partes) > 2 else os.path.basename(caminho_local)
 
+            arquivos_existentes = namenode.listar_arquivos()
+            if nome_remoto in arquivos_existentes:
+                print("Já existe um arquivo com esse nome, renomeie seu arquivo ou delete o atual para fazer o upload novamente.")
+                continue
+
             try:
                 with open(caminho_local, "rb") as f:
                     print(f"[Cliente] Enviando '{nome_remoto}' para o NameNode em blocos de 64KB...")

@@ -18,6 +18,10 @@ class DataNode:
         self.storage_dir = storage_dir
         os.makedirs(self.storage_dir, exist_ok=True)
 
+        # Limpa todos os chunks ao iniciar
+        self.limpar_todos_os_chunks()
+        print(f"[DataNode] Diretório limpo: {self.storage_dir}")
+
     def salvar_arquivo(self, nome_chunk, dados_bytes, checksum_esperado):
         """
         Salva o chunk em disco e valida o checksum.
@@ -46,6 +50,16 @@ class DataNode:
         dados = carregar_chunk(self.storage_dir, nome_chunk)
         checksum = calcular_checksum(dados)
         return dados, checksum
+    
+    def limpar_todos_os_chunks(self):
+        arquivos = os.listdir(self.storage_dir)
+        for nome in arquivos:
+            caminho = os.path.join(self.storage_dir, nome)
+            try:
+                os.remove(caminho)
+                print(f"[DataNode] Chunk removido: {caminho}")
+            except Exception as e:
+                print(f"[DataNode] Erro ao remover {caminho}: {e}")
 
 class HeartbeatSender(threading.Thread):
     def __init__(self, datanode_uri):
