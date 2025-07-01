@@ -1,7 +1,9 @@
-File Size,Operation,Time (s),Throughput (MB/s),Status,SHA256 Check,Bytes Transferidos,Observações
-1MB,Upload,1.01,0.99,Success,-,1048576,
-1MB,Download,1.02,0.98,Success,OK,1048576,
-10MB,Upload,1.12,8.93,Success,-,10485760,
-10MB,Download,1.08,9.28,Success,OK,10485760,
-100MB,Upload,2.56,39.06,Success,-,104857600,
-100MB,Download,1.85,54.11,Success,FAIL,104857600,
+File Size,Operation,Time (s),Throughput (MB/s),Status,Bytes Transferidos,Observações
+10MB,Upload,1.09,9.17,Success,10485760,
+10MB,Download,1.04,9.62,Success,10485760,
+100MB,Upload,2.41,41.57,Success,104857600,
+100MB,Download,1.57,63.68,Success,104857600,
+500MB,Upload,8.45,59.19,Success,524288000,
+500MB,Download,5.68,88.1,Success,524288000,
+1GB,Upload,38.75,26.42,Success,1073741824,
+1GB,Download,10.22,100.22,Success,1073741824,

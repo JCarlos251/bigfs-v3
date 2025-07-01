@@ -3,20 +3,14 @@ import time
 import csv
 import subprocess
 import hashlib
+import sys
 
 file_sizes = {
-    "1MB": 1 * 1024 * 1024,
     "10MB": 10 * 1024 * 1024,
     "100MB": 100 * 1024 * 1024,
-}
-
-'''file_sizes = {
-    "1MB": 1 * 1024 * 1024,
-    "10MB": 10 * 1024 * 1024,
-    "100MB": 100 * 1024 * 1024,
+    "500MB": 500 * 1024 * 1024,
     "1GB": 1 * 1024 * 1024 * 1024,
-    "3GB": 3 * 1024 * 1024 * 1024,
-}'''
+}
 
 
 test_dir = "D:\\Temp\\"
@@ -51,7 +45,7 @@ def calcular_sha256(filepath):
 def run_command(command):
     try:
         proc = subprocess.Popen(
-            ["python", "-m", "cliente.main"],
+            ["python", "-m", "cliente.main_cliente"],
             cwd=".",
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -71,7 +65,7 @@ def benchmark():
     with open(csv_file, "w", newline="") as csvfile:
         fieldnames = [
             "File Size", "Operation", "Time (s)", "Throughput (MB/s)",
-            "Status", "SHA256 Check", "Bytes Transferidos", "Observações"
+            "Status", "Bytes Transferidos", "Observações"
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -100,12 +94,18 @@ def benchmark():
                 "Time (s)": round(elapsed, 2),
                 "Throughput (MB/s)": round(throughput, 2),
                 "Status": status_upload,
-                "SHA256 Check": "-",
                 "Bytes Transferidos": size,
                 "Observações": ""
             })
 
-            time.sleep(1)
+            #tempo para replicação
+            for i in range(25, 0, -1):
+                pontos = '.' * (26 - i)  
+                mensagem = f"aguardando {i}s {pontos}"
+                print(f"\r{mensagem}", end='')
+                sys.stdout.flush()
+                time.sleep(1)
+                
 
             # --- DOWNLOAD ---
             print(f"\n--- DOWNLOAD {filename} ---")
@@ -127,7 +127,6 @@ def benchmark():
                 "Time (s)": round(elapsed, 2),
                 "Throughput (MB/s)": round(throughput, 2),
                 "Status": status_download,
-                "SHA256 Check": sha_check,
                 "Bytes Transferidos": tamanho_real,
                 "Observações": ""
             })

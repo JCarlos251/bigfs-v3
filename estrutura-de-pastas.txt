@@ -2,39 +2,49 @@ bigfs-v3/ -- *** REALIZAÇÃO DE TESTES E CORREÇÕES ***
 │
 ├── cliente/
 │   ├── __init__.py
-│   ├── main.py                 # CLI simples: upload/download/list/delete -- *** IMPLEMENTADO ***
-│   └── utils.py                # Funções simples: leitura de arquivo local, checksum -- *** IMPLEMENTADO ***
+│   ├── main_cliente.py         # CLI simples: upload/download/list/delete 
+│   └── utils.py                # Funções simples: leitura de arquivo local, checksum 
 │
 ├── namenode/
 │   ├── __init__.py
-│   ├── main.py                 # Inicializa o daemon e registra o serviço -- *** IMPLEMENTADO ***
-│   ├── namenode.py             # Coordena todas as operações: escrita, leitura, deleção -- *** IMPLEMENTADO ***
-│   ├── chunk_manager.py        # Divide e reconstrói arquivos (10MB), controla replicação -- *** IMPLEMENTADO ***
-│   ├── metadados.py            # Gerencia estrutura de metadados (dict em memória e persistência) -- *** IMPLEMENTADO ***
-│   ├── heartbeat_monitor.py    # Verifica DataNodes ativos (heartbeat) -- *** IMPLEMENTADO ***
-│   └── replicador.py           # Serviço que mantém fator de replicação fixo (3) -- *** IMPLEMENTADO ***
+│   ├── main.py                 # Inicializa o daemon e registra o serviço 
+│   ├── namenode.py             # Coordena todas as operações: escrita, leitura, deleção 
+│   ├── chunk_manager.py        # Divide e reconstrói arquivos (10MB), controla replicação 
+│   ├── metadados.py            # Gerencia estrutura de metadados (dict em memória e persistência) 
+│   ├── heartbeat_monitor.py    # Verifica DataNodes ativos (heartbeat) 
+│   ├── replicador.py           # Serviço que mantém fator de replicação fixo (3) 
+|   └── replicador2.py          # Serviço que mantém fator de replicação fixo (3) 
 │
 ├── datanode/
 │   ├── __init__.py
-│   ├── datanode.py             # Classe com salvar/deletar chunk, validar checksum -- *** IMPLEMENTADO ***
-│   ├── main1.py                # Inicializa DataNode 1 -- *** IMPLEMENTADO ***
-│   ├── main2.py                # Inicializa DataNode 2 -- *** IMPLEMENTADO ***
-│   └── storage_utils.py        # Leitura/escrita segura em disco -- *** IMPLEMENTADO ***
+│   ├── datanode.py             # Classe com salvar/deletar chunk, validar checksum 
+│   ├── main1.py                # Inicializa DataNode 1 
+│   ├── main2.py                # Inicializa DataNode 2 
+│   ├── main3.py                # Inicializa DataNode 3 
+│   ├── main4.py                # Inicializa DataNode 4 
+│   └── storage_utils.py        # Leitura/escrita segura em disco 
 │
 ├── servidor/
-│   ├── datanode1/              # Armazenamento físico do DN1 -- *** IMPLEMENTADO ***
-│   └── datanode2/              # Armazenamento físico do DN2 -- *** IMPLEMENTADO ***
+│   ├── datanode1/              # Armazenamento físico do DN1 
+│   └── datanode2/              # Armazenamento físico do DN2 
 │
 ├── core/
-│   ├── config.py               # CHUNK_SIZE, REPLICATION_FACTOR, PATHS  -- *** IMPLEMENTADO ***
-│   ├── constants.py            # Nomes fixos, limites de tempo, etc. -- *** IMPLEMENTADO ***
-│   └── network.py              # Interface Pyro5 para registro e localização -- *** IMPLEMENTADO ***
+│   ├── config.py               # CHUNK_SIZE, REPLICATION_FACTOR, PATHS  
+│   ├── constants.py            # Nomes fixos, limites de tempo, etc. 
+│   └── network.py              # Interface Pyro5 para registro e localização 
 │
 ├── scripts/
-│   ├── start_namenode.sh
-│   ├── start_datanode1.sh
-│   ├── start_datanode2.sh
-│   └── start_cliente.sh
+│   ├── client
+│       └── start_cliente.sh
+│   ├── server
+|       ├── START_ALL_SERVICES.sh
+│       ├── start_datanode1.sh
+│       ├── start_datanode2.sh
+│       ├── start_datanode3.sh
+│       ├── start_datanode4.sh
+│       ├── start_namenode.sh
+│       └── start_nameserver.sh
+│   └── benchmark_cliente.py
 │
 └── README.md
 
