@@ -1,78 +1,105 @@
-# Serviço que mantém fator de replicação fixo (3)
-
 import threading
 import time
-from core.config import REPLICATION_FACTOR
-from datanode.storage_utils import calcular_checksum
+import random
 from Pyro5.api import Proxy
+from core.config import REPLICATION_FACTOR
 
 class Replicador(threading.Thread):
-    def __init__(self, namenode, intervalo=5):
-        super().__init__(daemon=True)
+    def __init__(self, namenode, intervalo=10):
+        super().__init__()
         self.namenode = namenode
-        self.intervalo = intervalo  #  5 segundos
+        self.intervalo = intervalo
+        self.daemon = True  # Finaliza com o processo principal
 
     def run(self):
         while True:
+            try:
+                self.replicar_chunks()
+            except Exception as e:
+                print(f"[Replicador] Erro durante replicação: {e}")
             time.sleep(self.intervalo)
 
-            with self.namenode.lock:
-                arquivos = self.namenode.metadados.metadados.copy()
+    def replicar_chunks(self):
+        try:
+            arquivos = self.namenode.metadados.listar_arquivos()
+            datanodes_vivos = [str(uri) for uri in self.namenode.obter_datanodes_vivos()]
+        except Exception as e:
+            print(f"[Replicador] Falha ao obter arquivos ou datanodes vivos: {e}")
+            return
 
-            for arquivo, chunks in arquivos.items():
-                for chunk_name, datanodes_existentes in chunks.items():
-                    try:
-                        vivos = self.namenode.obter_datanodes_vivos()
+        for arquivo in arquivos:
+            try:
+                chunks = self.namenode.metadados.obter_chunks_do_arquivo(arquivo)
+            except Exception as e:
+                print(f"[Replicador] Falha ao obter chunks do arquivo '{arquivo}': {e}")
+                continue
 
-                        faltando = REPLICATION_FACTOR - len(datanodes_existentes)
-                        '''if faltando <= 0:
-                            continue  # Já está com o número correto de réplicas'''
+            atualizado = False
 
-                        # Calcular diferença de replicação
-                        diff = REPLICATION_FACTOR - len(datanodes_existentes)
+            for chunk_name, uris_existentes in chunks.items():
+                try:
+                    uris_existentes = [str(u) for u in uris_existentes]
+                    uris_existentes = [u for u in uris_existentes if u in datanodes_vivos]
 
-                        if diff == 0:
-                            continue  # Nada a fazer
+                    # === [1] Corrige excesso de réplicas ===
+                    if len(uris_existentes) > REPLICATION_FACTOR:
+                        excedentes = uris_existentes[REPLICATION_FACTOR:]
+                        for uri in excedentes:
+                            try:
+                                with Proxy(uri) as datanode:
+                                    datanode.delete_arquivo(chunk_name)
+                                print(f"[Replicador] Réplica excedente {chunk_name} removida de {uri}")
+                            except Exception as e:
+                                print(f"[Replicador] Falha ao remover réplica excedente de {uri}: {e}")
+                        uris_existentes = uris_existentes[:REPLICATION_FACTOR]
+                        chunks[chunk_name] = uris_existentes
+                        atualizado = True
 
-                        elif diff > 0:
-                            # ========== REPLICA ==========
-                            # Encontrar DataNodes disponíveis que ainda não têm o chunk
-                            candidatos = [uri for uri in vivos if uri not in datanodes_existentes]
-                            if len(candidatos) < faltando:
-                                print(f"[Replicador] Não há DataNodes suficientes para replicar {chunk_name}")
-                                continue
+                    # === [2] Corrige falta de réplicas ===
+                    elif len(uris_existentes) < REPLICATION_FACTOR:
+                        faltam = REPLICATION_FACTOR - len(uris_existentes)
+                        candidatos = list(set(datanodes_vivos) - set(uris_existentes))
+                        origens_possiveis = [u for u in uris_existentes if u in datanodes_vivos]
 
-                            origem_uri = datanodes_existentes[0]  # qualquer dos existentes
-                            with Proxy(origem_uri) as origem_dn:
-                                dados, checksum = origem_dn.ler_arquivo(chunk_name)
+                        if not origens_possiveis:
+                            print(f"[Replicador] Nenhuma origem ativa para {chunk_name}")
+                            continue
 
-                            novos_datanodes = candidatos[:faltando]
-                            for destino_uri in novos_datanodes:
-                                try:
-                                    with Proxy(destino_uri) as destino_dn:
-                                        destino_dn.salvar_arquivo(chunk_name, dados, checksum)
-                                    datanodes_existentes.append(destino_uri)
-                                    print(f"[Replicador] Chunk {chunk_name} replicado para {destino_uri}")
-                                except Exception as e:
-                                    print(f"[Replicador] Falha ao replicar {chunk_name} para {destino_uri}: {e}")
+                        origem_uri = origens_possiveis[0]
+                        random.shuffle(candidatos)
 
-                        elif diff < 0:
-                            # ========== REMOVE EXCEDENTES ==========
-                            excedentes = datanodes_existentes[REPLICATION_FACTOR:]  # Ex: [dn4, dn5]
-                            for dn_uri in excedentes:
-                                try:
-                                    with Proxy(dn_uri) as dn:
-                                        dn.delete_arquivo(chunk_name)
-                                    print(f"[Replicador] Réplica excedente de {chunk_name} removida de {dn_uri}")
-                                except Exception as e:
-                                    print(f"[Replicador] Falha ao remover réplica excedente {chunk_name} de {dn_uri}: {e}")
+                        try:
+                            with Proxy(origem_uri) as origem:
+                                dados, checksum = origem.ler_arquivo(chunk_name)
+                        except Exception as e:
+                            print(f"[Replicador] Falha ao ler chunk {chunk_name} de {origem_uri}: {e}")
+                            continue
 
-                            datanodes_existentes = datanodes_existentes[:REPLICATION_FACTOR]
+                        novos_uris = []
+                        for uri_destino in candidatos[:faltam]:
+                            try:
+                                with Proxy(uri_destino) as destino:
+                                    destino.salvar_arquivo(chunk_name, dados, checksum)
+                                novos_uris.append(str(uri_destino))
+                                print(f"[Replicador] Replicado {chunk_name} de {origem_uri} para {uri_destino}")
+                            except Exception as e:
+                                print(f"[Replicador] Falha ao replicar {chunk_name} para {uri_destino}: {e}")
 
-                        # Atualizar metadados
-                        with self.namenode.lock:
-                            self.namenode.metadados.metadados[arquivo][chunk_name] = datanodes_existentes
-                            self.namenode.metadados._salvar_em_disco()
+                        if novos_uris:
+                            uris_existentes += novos_uris
+                            chunks[chunk_name] = uris_existentes
+                            atualizado = True
 
-                    except Exception as e:
-                        print(f"[Replicador] Erro ao verificar chunk {chunk_name}: {e}")
+                except Exception as e:
+                    print(f"[Replicador] Erro ao processar chunk '{chunk_name}' do arquivo '{arquivo}': {e}")
+                    continue
+
+            if atualizado:
+                try:
+                    chunks_serializaveis = {
+                        chunk: [str(uri) for uri in uris]
+                        for chunk, uris in chunks.items()
+                    }
+                    self.namenode.metadados.salvar_metadado(arquivo, chunks_serializaveis)
+                except Exception as e:
+                    print(f"[Replicador] Falha ao salvar metadados para '{arquivo}': {e}")

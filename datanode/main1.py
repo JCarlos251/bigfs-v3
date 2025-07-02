@@ -14,30 +14,34 @@ def main():
     service_name = f"{DATANODE_SERVICE_PREFIX}{datanode_id}"
     storage_dir = "servidor/datanode1"
 
-    # Criação do daemon Pyro5
-    daemon = start_daemon()
-    datanode = DataNode(storage_dir)
-
-    # Registro no NameServer
-    uri = register_service(service_name, datanode, daemon)
-    print(f"[DataNode1] Registrado como {service_name}")
-    print(f"[DataNode1] URI: {uri}")
-
-    # Registro no NameNode
     try:
-        ns = get_nameserver()
-        namenode_uri = ns.lookup(NAMENODE_SERVICE_NAME)
-        with Proxy(namenode_uri) as namenode:
-            namenode.registrar_datanode(uri)
-        print("[DataNode1] Registrado com sucesso no NameNode.")
-    except Exception as e:
-        print(f"[DataNode1] Erro ao registrar no NameNode: {e}")
-    
-    HeartbeatSender(uri).start()
+        # Criação do daemon Pyro5
+        daemon = start_daemon()
+        datanode = DataNode(storage_dir)
 
-    # Loop do servidor
-    print("[DataNode1] Aguardando requisições...")
-    daemon.requestLoop()
+        # Registro no NameServer
+        uri = register_service(service_name, datanode, daemon)
+        print(f"[DataNode1] Registrado como {service_name}")
+        print(f"[DataNode1] URI: {uri}")
+
+        # Registro no NameNode
+        try:
+            ns = get_nameserver()
+            namenode_uri = ns.lookup(NAMENODE_SERVICE_NAME)
+            with Proxy(namenode_uri) as namenode:
+                namenode.registrar_datanode(uri)
+            print("[DataNode1] Registrado com sucesso no NameNode.")
+        except Exception as e:
+            print(f"[DataNode1] Erro ao registrar no NameNode: {e}")
+
+        HeartbeatSender(uri).start()
+
+        # Loop do servidor
+        print("[DataNode1] Aguardando requisições...")
+        daemon.requestLoop()
+
+    except Exception as e:
+        print(f"[DataNode1] Falha na inicialização: {e}")
 
 if __name__ == "__main__":
     main()

@@ -13,7 +13,6 @@ bigfs-v3/ -- *** REALIZAÇÃO DE TESTES E CORREÇÕES ***
 │   ├── metadados.py            # Gerencia estrutura de metadados (dict em memória e persistência) 
 │   ├── heartbeat_monitor.py    # Verifica DataNodes ativos (heartbeat) 
 │   ├── replicador.py           # Serviço que mantém fator de replicação fixo (3) 
-|   └── replicador2.py          # Serviço que mantém fator de replicação fixo (3) 
 │
 ├── datanode/
 │   ├── __init__.py

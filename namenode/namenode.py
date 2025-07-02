@@ -4,7 +4,7 @@ import threading
 import time
 import os
 from Pyro5.api import expose, config
-from core.config import REPLICATION_FACTOR, HEARTBEAT_TIMEOUT
+from core.config import HEARTBEAT_TIMEOUT
 from namenode.metadados import Metadados
 from namenode.chunk_manager import ChunkManager
 from namenode.heartbeat_monitor import HeartbeatMonitor
@@ -12,7 +12,7 @@ from namenode.replicador import Replicador
 from datanode.storage_utils import calcular_checksum
 from Pyro5.api import Proxy
 
-from namenode.replicador2 import Replicador2
+from namenode.replicador import Replicador
 
 config.SERIALIZER = "msgpack"
 
@@ -30,10 +30,8 @@ class NameNode:
         self.chunk_manager = ChunkManager()
         self.heartbeat_monitor = HeartbeatMonitor(self)
         self.heartbeat_monitor.start()
-        # self.replicador = Replicador(self)
-        # self.replicador.start()
 
-        self.replicador = Replicador2(self)
+        self.replicador = Replicador(self)
         self.replicador.start()
 
     # ---------------------------
@@ -63,24 +61,29 @@ class NameNode:
     def listar_arquivos(self):
         print(self.datanodes_ativos)
         return self.metadados.listar_arquivos()
+    
 
     def delete_arquivo(self, nome_arquivo):
-        chunks = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
-        if not chunks:
-            raise Exception("Arquivo não encontrado.")
+        try:
+            chunks = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
+            if not chunks:
+                raise Exception("Arquivo não encontrado.")
 
-        from Pyro5.api import Proxy
-        for chunk, datanodes in chunks.items():
-            for dn_uri in datanodes:
-                try:
-                    with Proxy(dn_uri) as datanode:
-                        datanode.delete_arquivo(chunk)
-                except Exception as e:
-                    print(f"[NameNode] Falha ao deletar {chunk} de {dn_uri}: {e}")
+            from Pyro5.api import Proxy
+            for chunk, datanodes in chunks.items():
+                for dn_uri in datanodes:
+                    try:
+                        with Proxy(dn_uri) as datanode:
+                            datanode.delete_arquivo(chunk)
+                    except Exception as e:
+                        print(f"[NameNode] Falha ao deletar {chunk} de {dn_uri}: {e}")
 
-        self.metadados.remover_arquivo(nome_arquivo)
-        print(f"[NameNode] Metadados removidos para '{nome_arquivo}'")
-        return True
+            self.metadados.remover_arquivo(nome_arquivo)
+            print(f"[NameNode] Metadados removidos para '{nome_arquivo}'")
+            return True
+        except Exception as e:
+            print(f"[NameNode] Erro ao deletar arquivo '{nome_arquivo}': {e}")
+            return False
 
 
     def receber_bloco(self, nome_arquivo, bloco_bytes, checksum_cliente):
@@ -175,69 +178,16 @@ class NameNode:
 
         return candidatos[0] if candidatos else None
 
-
-
-    
-
     def reconstruir_arquivo_para_download(self, nome_arquivo):
-        chunks_info = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
-        if not chunks_info:
-            raise Exception("Arquivo não encontrado.")
+        try:
+            chunks_info = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
+            if not chunks_info:
+                raise Exception("Arquivo não encontrado.")
 
-        os.makedirs("tmp_downloads", exist_ok=True)
-        caminho_saida = os.path.join("tmp_downloads", nome_arquivo)
+            os.makedirs("tmp_downloads", exist_ok=True)
+            caminho_saida = os.path.join("tmp_downloads", nome_arquivo)
 
-        def baixar_chunk(chunk_name, datanodes):
-            for dn_uri in datanodes:
-                try:
-                    with Proxy(dn_uri) as datanode:
-                        dados, checksum = datanode.ler_arquivo(chunk_name)
-                        if calcular_checksum(dados) != checksum:
-                            print(f"[NameNode] Checksum inválido do chunk {chunk_name} de {dn_uri}")
-                            continue
-                        print(f"[NameNode] Chunk {chunk_name} baixado de {dn_uri}")
-                        return chunk_name, dados
-                except Exception as e:
-                    print(f"[NameNode] Falha ao baixar chunk {chunk_name} de {dn_uri}: {e}")
-            raise Exception(f"Falha em todos os DataNodes para o chunk {chunk_name}")
-
-        resultados = {}
-
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            futuros = [executor.submit(baixar_chunk, chunk_name, datanodes)
-                    for chunk_name, datanodes in chunks_info.items()]
-
-            for futuro in as_completed(futuros):
-                chunk_name, dados = futuro.result()
-                resultados[chunk_name] = dados
-
-        # Ordena os chunks pelo nome para escrever em sequência
-        with open(caminho_saida, "wb") as f_saida:
-            for chunk_name in sorted(resultados.keys()):
-                f_saida.write(resultados[chunk_name])
-
-        print(f"[NameNode] Arquivo {nome_arquivo} reconstruído com sucesso em {caminho_saida}")
-        return True
-
-    '''
-    def reconstruir_arquivo_para_download(self, nome_arquivo):
-        """
-        Reagrupa os chunks de um arquivo a partir dos DataNodes,
-        salva o arquivo completo em tmp_downloads/ e retorna True/False.
-        """
-        chunks_info = self.metadados.obter_chunks_do_arquivo(nome_arquivo)
-        if not chunks_info:
-            raise Exception("Arquivo não encontrado.")
-
-        os.makedirs("tmp_downloads", exist_ok=True)
-        caminho_saida = os.path.join("tmp_downloads", nome_arquivo)
-
-        with open(caminho_saida, "wb") as f_saida:
-            for chunk_name in sorted(chunks_info.keys()):
-                datanodes = chunks_info[chunk_name]
-                sucesso = False
-
-                # tenta no primeiro datanode da lista, se não for possível, tentará o próximo
+            def baixar_chunk(chunk_name, datanodes):
                 for dn_uri in datanodes:
                     try:
                         with Proxy(dn_uri) as datanode:
@@ -245,38 +195,53 @@ class NameNode:
                             if calcular_checksum(dados) != checksum:
                                 print(f"[NameNode] Checksum inválido do chunk {chunk_name} de {dn_uri}")
                                 continue
-                            f_saida.write(dados)
-                            sucesso = True
-                            break
+                            print(f"[NameNode] Chunk {chunk_name} baixado de {dn_uri}")
+                            return chunk_name, dados
                     except Exception as e:
                         print(f"[NameNode] Falha ao baixar chunk {chunk_name} de {dn_uri}: {e}")
-                if not sucesso:
-                    raise Exception(f"Falha em todos os DataNodes para o chunk {chunk_name}")
+                raise Exception(f"Falha em todos os DataNodes para o chunk {chunk_name}")
 
-        return True
-        '''
+            resultados = {}
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                futuros = [executor.submit(baixar_chunk, chunk_name, datanodes)
+                        for chunk_name, datanodes in chunks_info.items()]
+
+                for futuro in as_completed(futuros):
+                    chunk_name, dados = futuro.result()
+                    resultados[chunk_name] = dados
+
+            with open(caminho_saida, "wb") as f_saida:
+                for chunk_name in sorted(resultados.keys()):
+                    f_saida.write(resultados[chunk_name])
+
+            print(f"[NameNode] Arquivo {nome_arquivo} reconstruído com sucesso em {caminho_saida}")
+            return True
+        except Exception as e:
+            print(f"[NameNode] Erro ao reconstruir arquivo: {e}")
+            return False
 
     def enviar_arquivo_em_blocos(self, nome_arquivo):
-        """
-        Generator: Envia o arquivo reconstruído em blocos de 64KB com checksum.
-        """
-        caminho = os.path.join("tmp_downloads", nome_arquivo)
-        if not os.path.exists(caminho):
-            raise FileNotFoundError("Arquivo temporário de download não encontrado.")
+        try:
+            caminho = os.path.join("tmp_downloads", nome_arquivo)
+            if not os.path.exists(caminho):
+                raise FileNotFoundError("Arquivo temporário de download não encontrado.")
 
-        with open(caminho, "rb") as f:
-            while True:
-                bloco = f.read(64 * 1024)
-                if not bloco:
-                    break
-                from datanode.storage_utils import calcular_checksum
-                checksum = calcular_checksum(bloco)
-                yield bloco, checksum
+            with open(caminho, "rb") as f:
+                while True:
+                    bloco = f.read(64 * 1024)
+                    if not bloco:
+                        break
+                    from datanode.storage_utils import calcular_checksum
+                    checksum = calcular_checksum(bloco)
+                    yield bloco, checksum
+        except Exception as e:
+            print(f"[NameNode] Erro ao enviar arquivo em blocos: {e}")
+            raise
 
     def finalizar_download(self, nome_arquivo):
-        """
-        Remove o arquivo temporário de download.
-        """
-        caminho = os.path.join("tmp_downloads", nome_arquivo)
-        if os.path.exists(caminho):
-            os.remove(caminho)
+        try:
+            caminho = os.path.join("tmp_downloads", nome_arquivo)
+            if os.path.exists(caminho):
+                os.remove(caminho)
+        except Exception as e:
+            print(f"[NameNode] Erro ao finalizar download: {e}")

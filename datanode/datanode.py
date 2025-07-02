@@ -23,34 +23,36 @@ class DataNode:
         print(f"[DataNode] Diretório limpo: {self.storage_dir}")
 
     def salvar_arquivo(self, nome_chunk, dados_bytes, checksum_esperado):
-        """
-        Salva o chunk em disco e valida o checksum.
-        """
-        checksum_calculado = calcular_checksum(dados_bytes)
+        try:
+            checksum_calculado = calcular_checksum(dados_bytes)
+            if checksum_calculado != checksum_esperado:
+                raise ValueError(f"Checksum inválido para {nome_chunk}")
 
-        if checksum_calculado != checksum_esperado:
-            raise ValueError(f"Checksum inválido para {nome_chunk}")
-
-        salvar_chunk(self.storage_dir, nome_chunk, dados_bytes)
-        print(f"[DataNode] Chunk salvo com sucesso: {nome_chunk}")
-        return True
+            salvar_chunk(self.storage_dir, nome_chunk, dados_bytes)
+            print(f"[DataNode] Chunk salvo com sucesso: {nome_chunk}")
+            return True
+        except Exception as e:
+            print(f"[DataNode] Erro ao salvar chunk {nome_chunk}: {e}")
+            raise
 
     def delete_arquivo(self, nome_chunk):
-        """
-        Remove um chunk do armazenamento local.
-        """
-        deletar_chunk(self.storage_dir, nome_chunk)
-        print(f"[DataNode] Chunk deletado: {nome_chunk}")
-        return True
+        try:
+            deletar_chunk(self.storage_dir, nome_chunk)
+            print(f"[DataNode] Chunk deletado: {nome_chunk}")
+            return True
+        except Exception as e:
+            print(f"[DataNode] Erro ao deletar chunk {nome_chunk}: {e}")
+            raise
 
     def ler_arquivo(self, nome_chunk):
-        """
-        Lê um chunk e retorna seus dados e checksum para validação no cliente.
-        """
-        dados = carregar_chunk(self.storage_dir, nome_chunk)
-        checksum = calcular_checksum(dados)
-        return dados, checksum
-    
+        try:
+            dados = carregar_chunk(self.storage_dir, nome_chunk)
+            checksum = calcular_checksum(dados)
+            return dados, checksum
+        except Exception as e:
+            print(f"[DataNode] Erro ao ler chunk {nome_chunk}: {e}")
+            raise
+
     def limpar_todos_os_chunks(self):
         arquivos = os.listdir(self.storage_dir)
         for nome in arquivos:
@@ -61,6 +63,7 @@ class DataNode:
             except Exception as e:
                 print(f"[DataNode] Erro ao remover {caminho}: {e}")
 
+                
 class HeartbeatSender(threading.Thread):
     def __init__(self, datanode_uri):
         super().__init__(daemon=True)
