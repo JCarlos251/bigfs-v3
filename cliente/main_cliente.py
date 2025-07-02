@@ -78,7 +78,7 @@ class Cliente:
             return
 
         caminho_local = partes[1]
-        nome_remoto = partes[2] if len(partes) > 2 else os.path.basename(caminho_local)
+        nome_remoto = os.path.basename(caminho_local)
 
         try:
             arquivos_existentes = self.namenode.listar_arquivos()
@@ -89,7 +89,8 @@ class Cliente:
             with open(caminho_local, "rb") as f:
                 print(f"[Cliente] Enviando '{nome_remoto}' para o NameNode em blocos de 64KB...")
                 while True:
-                    bloco = f.read(64 * 1024)
+                    # envia blocos de 60 KB + checksum
+                    bloco = f.read(60 * 1024)
                     if not bloco:
                         break
                     checksum = calcular_checksum(bloco)
@@ -108,7 +109,7 @@ class Cliente:
     def download(self, comando):
         partes = comando.split()
         if len(partes) < 2:
-            print("Uso: download <arquivo_remoto> [destino_local]")
+            print("Uso: download <arquivo_remoto>")
             return
 
         nome_remoto = partes[1]
