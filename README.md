@@ -1,7 +1,13 @@
 
 # 🗂️ Sistema de Arquivos Distribuídos com Python e Pyro5
 
-Este projeto implementa um **sistema de arquivos distribuídos** simples utilizando a linguagem **Python** e a biblioteca **Pyro5** para comunicação remota entre processos distribuídos.
+Este projeto implementa um **sistema de arquivos distribuídos** simples utilizando a linguagem **Python** e a biblioteca **Pyro5** para comunicação remota entre processos distribuídos. Disciplina de Sistemas Distribuídos - UFG, 2025/1
+
+Para informações, acesse os arquivos:
+
+Apresentação: Arquitetura BigFSv3 - apresentação.pdf
+
+Artigo BigFS.pdf
 
 ---
 
