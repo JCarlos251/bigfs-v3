@@ -24,11 +24,3 @@ class ChunkManager:
         """
         return [f"{nome_arquivo_base}_chunk{i+1}" for i in range(total_chunks)]
 
-    def sortear_datanodes_para_chunk(self, datanodes_vivos, replicacao):
-        """
-        Retorna uma lista de URIs de datanodes escolhidos aleatoriamente.
-        """
-        if len(datanodes_vivos) < replicacao:
-            raise Exception("Datanodes vivos insuficientes para replicação")
-
-        return random.sample(datanodes_vivos, replicacao)
